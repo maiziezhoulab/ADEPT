@@ -16,6 +16,14 @@ pytorch
 
 pyG
 
+pandas
+
+numpy
+
+scipy
+
+matplolib
+
 ### Install from github
 1. git clone --recursive https://github.com/maiziezhoulab/AquilaDeepFilter.git
 2. conda create -n [EnvName] python=3.8
