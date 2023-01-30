@@ -26,7 +26,7 @@ matplolib
 
 ### Install from github
 1. git clone --recursive https://github.com/maiziezhoulab/AquilaDeepFilter.git
-2. conda create -n [EnvName] python=3.8
+2. conda create -n [EnvName] python=3.7
 3. source activate [EnvName]
 4. install pytorch (https://pytorch.org/get-started/locally/) + pytorch-geometric (https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html) before everything
 5. pip install -r requirements.txt
