@@ -5,13 +5,10 @@ import scanpy as sc
 from scipy import sparse
 import os
 from imputation.impute import impute_
-import STAGATE_pyG as STAGATE
+import GAAE
 import argparse
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
-# the location of R (used for the mclust clustering)
-# os.environ['R_HOME'] = 'D:\Program Files\R\R-4.0.3'
-# os.environ['R_USER'] = 'D:\ProgramData\Anaconda3\Lib\site-packages\rpy2'
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 import time
@@ -87,7 +84,7 @@ def filter_num_calc(args_, comp_):
     if comp_ is not None:
         return comp_
     print("optimizing minimum filter number")
-    input_dir = os.path.join('/home/yunfei/Spatial/SphereLoss/withAnnotations', args_.input_data)
+    input_dir = os.path.join(args_.data_dir, args_.input_data)
     adata = sc.read_visium(path=input_dir, count_file=args_.input_data + '_filtered_feature_bc_matrix.h5')
 
     adata.var_names_make_unique()
@@ -101,7 +98,7 @@ def filter_num_calc(args_, comp_):
 
 def initialize(args_, gene_min_count):
     print("initializing spatial transcriptomic data")
-    input_dir = os.path.join('/home/yunfei/Spatial/SphereLoss/withAnnotations', args_.input_data)
+    input_dir = os.path.join(args_.data_dir, args_.input_data)
     if args_.input_data != 'starmap':
         adata_ = sc.read_visium(path=input_dir, count_file=args_.input_data + '_filtered_feature_bc_matrix.h5')
 
@@ -109,8 +106,7 @@ def initialize(args_, gene_min_count):
         adata_ori_ = adata_
         if args_.gt == 1:
             # read the annotation
-            Ann_df = pd.read_csv(os.path.join('/home/yunfei/Spatial/STAGATE_pyG/DLPFC_annotations',
-                                              args_.input_data + '_truth.txt'), sep='\t', header=None, index_col=0)
+            Ann_df = pd.read_csv(os.path.join(args_.gt_dir, args_.input_data + '_truth.txt'), sep='\t', header=None, index_col=0)
             Ann_df.columns = ['Ground Truth']
 
             if args_.input_data == 'sedr':
@@ -136,7 +132,7 @@ def initialize(args_, gene_min_count):
         else:
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
     else:
-        adata_ = sc.read('/home/yunfei/Spatial/STAGATE_pyG/starmap_annotations/STARmap_20180505_BY3_1k.h5ad')
+        adata_ = sc.read(os.path.join(args_.data_dir, "STARmap_20180505_BY3_1k.h5ad"))
         adata_.var_names_make_unique()
         adata_ori_ = adata_
         # Normalization
@@ -163,9 +159,9 @@ def DE_num_calc(args_, ad):
         print("section id = ", args_.input_data)
         nzr_list = []
         for i in range(3):
-            STAGATE.Cal_Spatial_Net(ad, rad_cutoff=args_.radius)
-            STAGATE.Stats_Spatial_Net(ad)
-            nzr = STAGATE.DE_nzr(ad, n_epochs=1000, num_cluster=args_.cluster_num, dif_k=de_, device_id=args_.use_gpu_id)
+            GAAE.Cal_Spatial_Net(ad, rad_cutoff=args_.radius)
+            GAAE.Stats_Spatial_Net(ad)
+            nzr = GAAE.DE_nzr(ad, n_epochs=1000, num_cluster=args_.cluster_num, dif_k=de_, device_id=args_.use_gpu_id)
             nzr_list.append(nzr)
         if args_.de_nzr_min <= np.mean(nzr_list) <= args_.de_nzr_max:
             out_list.append(de_)
@@ -205,15 +201,15 @@ def impute(args_, adata_list_, g_union):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--data_dir', type=str, default="./", help="root dir for input data")
+    parser.add_argument('--gt_dir', type=str, default="./", help="root dir for data ground truth")
     parser.add_argument('--input_data', type=str, default="151673", help="input data section id")
     parser.add_argument('--impute_cluster_num', type=str, default="7", help="diff cluster numbers for imputation")
     parser.add_argument('--cluster_num', type=int, default=7, help="input data cluster number")
     parser.add_argument('--radius', type=int, default=150, help="input data radius")
-    parser.add_argument("--de_candidates", type=str, default="200",
-                        help="candidate de list for imputation, separated by comma")
+    parser.add_argument("--de_candidates", type=str, default="200", help="candidate de list for imputation, separated by comma")
     parser.add_argument('--no_de', type=int, default=0, help='only applies when you have multiple gpu')
-    parser.add_argument("--use_mean", type=int, default=0,
-                        help="use mean value in de list or not")
+    parser.add_argument("--use_mean", type=int, default=0, help="use mean value in de list or not")
     parser.add_argument("--impute_runs", type=int, default=2, help="runs for imputation")
     parser.add_argument("--runs", type=int, default=20, help="total runs for the data")
     parser.add_argument('--gt', type=int, default=1, help="ground truth for the input data")
@@ -227,7 +223,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu_id', type=str, default='0', help='only applies when you have multiple gpu')
     args = parser.parse_args()
     args.impute_cluster_num = args.impute_cluster_num.split(",")  # ["5", "6", "7"]
-    root_d = '/home/yunfei/Spatial/STAGATE_pyG'
+    root_d = args.data_dir
     if args.input_data != 'starmap':
         filter_num = filter_num_calc(args, args.filter_num)
         print("optimized filter number = ", filter_num)
@@ -253,17 +249,13 @@ if __name__ == '__main__':
         for i in range(args.impute_runs):
             for cluster_n in args.impute_cluster_num:
                 print("cluster_n = ", cluster_n)
-                STAGATE.Cal_Spatial_Net(adata, rad_cutoff=args.radius)
-                STAGATE.Stats_Spatial_Net(adata)
+                GAAE.Cal_Spatial_Net(adata, rad_cutoff=args.radius)
+                GAAE.Stats_Spatial_Net(adata)
 
-                # ari_ini, ari_final = STAGATE.train_STA_mod(adata, n_epochs=1000)
-                ari_ini, adata_out = STAGATE.train_STA(adata, n_epochs=1000,
+                ari_ini, adata_out = GAAE.train_STA(adata, n_epochs=1000,
                                                        num_cluster=int(cluster_n),
                                                        device_id=args.use_gpu_id)
-                # ari_ini, ari_final, de_list = STAGATE.train_ADE2(adata, n_epochs=1000)
                 ari_doc_ini.append(ari_ini)
-                # ari_doc_final.append(ari_final)
-                # de_list_epoch.append(de_list)
                 adata_list.append(adata_out)
 
                 if args.save_fig:
@@ -302,19 +294,16 @@ if __name__ == '__main__':
         print(ari_doc_final)
         print(np.mean(ari_doc_final))
         print(np.std(ari_doc_final))
-        # print(adata_list[0].obs['mclust_impute'])
-        # exit(-1)
-        # print(adata_list[1].obs['mclust_impute'])
+
         g_union = list(adata_list[0].var.index.values)
         imputed_ad = impute(args, adata_list, g_union)
-        # else:
-        #     imputed_ad = sc.read_h5ad(imputed_f)
+
 
         """result of imputed data"""
-        STAGATE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
+        GAAE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
         ari_doc_ini = []
         for i in range(args.runs):
-            ari_ini, adata = STAGATE.train_STA(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num,
+            ari_ini, adata = GAAE.train_STA(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num,
                                                device_id=args.use_gpu_id)
             ari_doc_ini.append(ari_ini)
             if args.save_fig:
@@ -366,14 +355,11 @@ if __name__ == '__main__':
             for i in range(args.impute_runs):
                 for cluster_n in args.impute_cluster_num:
                     print("cluster_n = ", cluster_n)
-                    STAGATE.Cal_Spatial_Net(adata, rad_cutoff=args.radius)
-                    STAGATE.Stats_Spatial_Net(adata)
+                    GAAE.get_kNN(adata, rad_cutoff=args.radius)
 
-                    # ari_ini, ari_final = STAGATE.train_STA_mod(adata, n_epochs=1000)
-                    ari_ini, ari_final, de_list, adata_out = STAGATE.train_STA_use_DE(adata, n_epochs=1000,
+                    ari_ini, ari_final, de_list, adata_out = GAAE.train_STA_use_DE(adata, n_epochs=1000,
                                                                                       num_cluster=int(cluster_n),
                                                                                       dif_k=de_, device_id=args.use_gpu_id)
-                    # ari_ini, ari_final, de_list = STAGATE.train_ADE2(adata, n_epochs=1000)
                     ari_doc_ini.append(ari_ini)
                     ari_doc_final.append(ari_final)
                     de_list_epoch.append(de_list)
@@ -395,12 +381,6 @@ if __name__ == '__main__':
                             plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
                             downstream_analyses(args.input_data, adata, ari_ini, root_d,
                                                 args.input_data + "_" + timestr)
-                    #     if args.input_data == 'sedr':
-                    #         timestr = time.strftime("%Y%m%d-%H%M%S")
-                    #         plt.rcParams["figure.figsize"] = (3, 3)
-                    #         sc.pl.spatial(adata, color=["mclust", "Ground Truth"],
-                    #                       title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], spot_size=120)
-                    #         plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".png"))
 
             print(ari_doc_ini)
             print(np.mean(ari_doc_ini))
@@ -409,19 +389,15 @@ if __name__ == '__main__':
             print(ari_doc_final)
             print(np.mean(ari_doc_final))
             print(np.std(ari_doc_final))
-        # print(adata_list[0].obs['mclust_impute'])
-        # print(adata_list[1].obs['mclust_impute'])
         g_union = set.union(*de_list_epoch)
         imputed_ad = impute(args, adata_list, g_union)
-        # else:
-        #     imputed_ad = sc.read_h5ad(imputed_f)
 
         """result of imputed data"""
-        STAGATE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
+        GAAE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
         ari_doc_ini = []
         ari_doc_final = []
         for i in range(args.runs):
-            ari_ini, ari_final, de_list, adata_out = STAGATE.train_STA_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
+            ari_ini, ari_final, de_list, adata_out = GAAE.train_STA_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
             ari_doc_ini.append(ari_ini)
             ari_doc_final.append(ari_final)
             if args.save_fig:
@@ -450,4 +426,3 @@ if __name__ == '__main__':
         print(ari_doc_final)
         print(np.mean(ari_doc_final))
         print(np.std(ari_doc_final))
-        # args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
