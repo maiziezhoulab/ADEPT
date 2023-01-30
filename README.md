@@ -10,27 +10,11 @@ The general workflow of ADEPT works as follows:
 
 ## Installation
 ### Dependencies
-truvari==3.0.0
+scanpy
 
-tabix==1.11 [**bioconda**]
+pytorch
 
-tensorflow==2.5.0
-
-tensorboard==2.5.0
-
-matplotlib==3.1.0
-
-numpy==1.19.5
-
-opencv-python
-
-Pillow==7.2.0
-
-pysam==0.15.4
-
-scikit-learn
-
-scipy==1.5.4
+pyG
 
 ### Install from github
 1. git clone --recursive https://github.com/maiziezhoulab/AquilaDeepFilter.git
@@ -202,6 +186,5 @@ d. perform evaluation and report metrics
 
 Citation
 --------
-Y. Hu, S. V. Mangal, L. Zhang, X. Zhou. An ensemble deep learning framework to refine large deletions in linked-reads. The IEEE International Conference on Bioinformatics and Biomedicine (BIBM) (2021) 
-
+paper currently under review
 
