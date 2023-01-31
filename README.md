@@ -114,17 +114,27 @@ The meaning of each argument in ***run_CCST.py*** is listed below.
 
 
 
-##usage##
+**sample code for running ADEPT**
 
  
 For using ADEPT on DLPFC data, run
 
- `python ADEPT -` 
+ `python ADEPT_main.py --input_data=151673 --cluster_num=7 --radius=150 --use_hvgs=0 --runs=3 --de_candidates=None --impute_runs=5` 
  
  and on STARmap data, run
  
- `python ADEPT -`
+ `python ADEPT_main.py --input_data=starmap --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=None --filter_nzr=0 --impute_runs=10 --save_fig=1`
  
+
+**notice**
+
+(1) DLPFC data are provided in this zenodo link: .
+
+(2) STARmap data is in this repository.
+
+(3) For data without GT.txt, set  `--gt==0`.
+
+(4) The input root dir for data and grount truth could be separated, so we have to specify paths for both.
 
 <!-- All results are saved in the results folder. We provide our results in the folder ***results*** for taking further analysis. 
 
