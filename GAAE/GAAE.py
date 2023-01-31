@@ -40,7 +40,7 @@ class GAAE(torch.nn.Module):
 
 class GAAE_mod1(torch.nn.Module):
     def __init__(self, in_dim, deg_dim, gae_hidden_dims, mlp_dims):
-        super(SGAAE_mod1, self).__init__()
+        super(GAAE_mod1, self).__init__()
 
         num_hidden, out_dim = gae_hidden_dims
         pred_out = mlp_dims

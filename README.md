@@ -33,38 +33,116 @@ matplolib
 
 ## Usage
 
-**test**
+**Data input**
 
-a. test
+we put the STARmap dataset in ***dataset/STARmap***. It is an h5ad file which could be directly used.
 
-use **vcf2bed_training.py** and **vcf2bed_val.py** to generate .bed files before generating images
+For 10x Spatial Transcripts (ST) datasets, files should be put in the same structure with that provided by 10x website. Taking slide 151673 for instance:
 
-will have **3** .bed files as the output of **vcf2bed_training.py**
+> dataset/151673/ 
+  >> spatial/  # The folder where files for spatial information can be found 
+  
+  >> GT.txt # mainly for annotation
+  
+  >> 151673_filtered_feature_bc_matrix.h5 # gene expression data
 
-will have **1** .bed file as the output of **vcf2bed_val.py**
+**ADEPT main function**
 
-b. generate image from the .bed files (generated in last step) and .bam files (used for SV calling)
+Run ADEPT 
 
-use **bed2image.py** to generate training/testing images. For training images, positive samples are generated from 2 .bed files corresponding to TP.vcf and FN.vcf while negative samples are generated from 1 .bed file corresponding to FP.vcf
+The main function of ADEPT is implemented in ***ADEPT_main.py***. When using ADEPT, we do not need to specify any data types. 
 
-c. augmentate the images generated in last step
+The meaning of each argument in ***run_CCST.py*** is listed below.
 
-use **augmentate.py** to augmentate the images
+    parser.add_argument('--impute_cluster_num', type=str, default="7", help="diff cluster numbers for imputation")
+    parser.add_argument('--cluster_num', type=int, default=7, help="input data cluster number")
+    parser.add_argument('--radius', type=int, default=150, help="input data radius")
+    parser.add_argument("--de_candidates", type=str, default="200", help="candidate de list for imputation, separated by comma")
+    parser.add_argument('--no_de', type=int, default=0, help='switch on/off DEG selection module')
+    parser.add_argument("--use_mean", type=int, default=0, help="use mean value in de list or not")
+    parser.add_argument("--impute_runs", type=int, default=2, help="time of runs for imputation")
+    parser.add_argument("--runs", type=int, default=20, help="total runs for the data")
+    parser.add_argument('--gt', type=int, default=1, help="ground truth for the input data")
+    parser.add_argument('--use_hvgs', type=int, default=3000, help="select highly variable genes before training")
+    parser.add_argument('--use_preprocessing', type=int, default=1, help='use preprocessed input or raw input')
+    parser.add_argument('--save_fig', type=int, default=1, help='saving output visualization')
+    parser.add_argument('--filter_nzr', type=float, default=0.15, help='suggested nzr threshold for filtering')
+    parser.add_argument('--filter_num', type=int, default=None, help='suggested gene threshold for filtering')
+    parser.add_argument('--de_nzr_min', type=float, default=0.299, help='suggested min nzr threshold after de selection')
+    parser.add_argument('--de_nzr_max', type=float, default=0.399, help='suggested max nzr threshold after de selection')
+    parser.add_argument('--use_gpu_id', type=str, default='0', help='use which GPU, only applies when you have multiple gpu')
 
+**--data_dir**: "./". root dir for input data and results saving
 
-## Repo Structure and Output
+**--gt_dir**: "./". root dir for data ground truth
 
-1. The folder of AquilaDeepFilter, post and preprocess have corresponding scripts and codes for Running the AuilaDeepFilter software
+**--input_data**: the name/section_id of dataset
 
-2. The dependencies are documented in the requirements.txt.
+**--impute_cluster_num**: a hyperparameter for imputation module.  
 
-3. The 'train' command in 'main.py' script will constantly store the weights for the training epoch with the best validation Acc. and stops after the convergence is reached.
+**--cluster_num**: a hyperparameter in initial/final clustering steps.  
 
-4. The 'predict' command in 'main.py' script will generate output in the BED structure (but in .txt file format). It can be then converted back to vcf for evaluation.
+**--radius**：radius to build up kNN graph
 
-5. The docker image of this project will also be uploaded later after all the configuration and testing work are done.
+**--de_candidates**: candidate de list for imputation, separated by comma
 
-6. The uploaded weights for our model and the toy dataset could be found in zenodo: ...
+**--no_de**: switch on/off DEG selection module
+
+**--use_mean**: use mean value of de list or not
+
+**--impute_runs**: time of runs for imputation
+
+**--runs**: total runs for the data
+
+**--gt**: ground truth for the input data
+
+**--use_hvgs**: select highly variable genes before training
+
+**--use_preprocessing**: use preprocessed input or raw input
+
+**--save_fig**: saving output visualization
+
+**--filter_nzr**: suggested nzr threshold for filtering
+
+**--filter_num**: suggested gene threshold for filtering
+
+**--de_nzr_min**: suggested min nzr threshold after de selection
+
+**--de_nzr_max**: suggested max nzr threshold after de selection
+
+**--use_gpu_id**: use which GPU, only applies when you have multiple gpu
+
+##usage##
+
+The trained model, embedding data and analysis results will be saved in folder ***model***, ***embedding_data*** and ***results*** by default.
+
+We provide the learned cell embedding of the model in the folder ***embedding_data***. If you want to directly use it, run 
+
+ `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 0.  ` on MERFISH and
+ 
+ `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 0.  ` on V1_Breast_Cancer_Block_A_Section_1.
+
+We provide the trained model in the folder ***model***. If you want to directly use it, run
+
+ `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 1 --load 1.  ` on MERFISH and
+ 
+ `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 1 --load 1.  ` on V1_Breast_Cancer_Block_A_Section_1.
+ 
+For training your own model, run
+
+ `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 1 --load 0.  ` on MERFISH and
+ 
+ `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 1 --load 0.  ` on V1_Breast_Cancer_Block_A_Section_1.
+ 
+
+All results are saved in the results folder. We provide our results in the folder ***results*** for taking further analysis. 
+
+(1) The cell clustering labels are saved in ***types.txt***, where the first column refers to cell index, and the last column refers to cell cluster label. 
+
+(3) The spatial distribution of cells within each batch are illustrated in ***.png*** files. 
+
+(4) On MERFISH dataset, the top-200 highly expressed genes of each cluster are listed in ***clusterx_gene_cur.txt***. They are sorted in the decent of statistical significance.
+
 
 Citation
 --------
