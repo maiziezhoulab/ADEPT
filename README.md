@@ -128,7 +128,7 @@ For using ADEPT on DLPFC data, run
 
 ### notice
 
-(1) DLPFC data are provided in this zenodo link: .
+(1) DLPFC data are provided in this zenodo link: https://zenodo.org/record/7591162#.Y9leUOzMKBQ 
 
 (2) STARmap data is in this repository.
 
