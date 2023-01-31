@@ -33,7 +33,7 @@ matplolib
 
 ## Usage
 
-**Data input**
+### Data input
 
 we put the STARmap dataset in ***dataset/STARmap***. It is an h5ad file which could be directly used.
 
@@ -46,7 +46,7 @@ For 10x Spatial Transcripts (ST) datasets, files should be put in the same struc
   
   >> 151673_filtered_feature_bc_matrix.h5 # gene expression data
 
-**ADEPT main function**
+### ADEPT main function
 
 Run ADEPT 
 
@@ -114,7 +114,7 @@ The meaning of each argument in ***run_CCST.py*** is listed below.
 
 
 
-**sample code for running ADEPT**
+### sample code for running ADEPT
 
  
 For using ADEPT on DLPFC data, run
@@ -126,7 +126,7 @@ For using ADEPT on DLPFC data, run
  `python ADEPT_main.py --input_data=starmap --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=None --filter_nzr=0 --impute_runs=10 --save_fig=1`
  
 
-**notice**
+### notice
 
 (1) DLPFC data are provided in this zenodo link: .
 
