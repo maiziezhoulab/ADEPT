@@ -112,39 +112,30 @@ The meaning of each argument in ***run_CCST.py*** is listed below.
 
 **--use_gpu_id**: use which GPU, only applies when you have multiple gpu
 
+
+
 ##usage##
 
-The trained model, embedding data and analysis results will be saved in folder ***model***, ***embedding_data*** and ***results*** by default.
-
-We provide the learned cell embedding of the model in the folder ***embedding_data***. If you want to directly use it, run 
-
- `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 0.  ` on MERFISH and
  
- `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 0.  ` on V1_Breast_Cancer_Block_A_Section_1.
+For using ADEPT on DLPFC data, run
 
-We provide the trained model in the folder ***model***. If you want to directly use it, run
-
- `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 1 --load 1.  ` on MERFISH and
+ `python ADEPT -` 
  
- `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 1 --load 1.  ` on V1_Breast_Cancer_Block_A_Section_1.
+ and on STARmap data, run
  
-For training your own model, run
-
- `python run_CCST --data_type sc --data_name MERFISH --lambda_I 0.8 --DGI 1 --load 0.  ` on MERFISH and
- 
- `python run_CCST --data_type nsc --data_name V1_Breast_Cancer_Block_A_Section_1 --lambda_I 0.3 --DGI 1 --load 0.  ` on V1_Breast_Cancer_Block_A_Section_1.
+ `python ADEPT -`
  
 
-All results are saved in the results folder. We provide our results in the folder ***results*** for taking further analysis. 
+<!-- All results are saved in the results folder. We provide our results in the folder ***results*** for taking further analysis. 
 
 (1) The cell clustering labels are saved in ***types.txt***, where the first column refers to cell index, and the last column refers to cell cluster label. 
 
-(3) The spatial distribution of cells within each batch are illustrated in ***.png*** files. 
-
-(4) On MERFISH dataset, the top-200 highly expressed genes of each cluster are listed in ***clusterx_gene_cur.txt***. They are sorted in the decent of statistical significance.
+(3) The spatial distribution of cells within each batch are illustrated in ***.png*** files.  -->
 
 
 Citation
 --------
-paper currently under review
+Yunfei Hu, et al. "ADEPT: Autoencoder with Differentially Expressed Genes and Imputation for a Robust Spatial Transcriptomics Clustering."
+
+currently under review
 
