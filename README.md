@@ -147,5 +147,5 @@ Citation
 --------
 Yunfei Hu, et al. "ADEPT: Autoencoder with Differentially Expressed Genes and Imputation for a Robust Spatial Transcriptomics Clustering."
 
-currently under review
+paper currently under review for recombseq-2023
 
