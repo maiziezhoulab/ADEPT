@@ -6,7 +6,7 @@ Recent advancements in spatial transcriptomics (ST) have enabled an in-depth und
 
 The general workflow of ADEPT works as follows:
 <p align="center">
-	<img src="https://github.com/maiziezhoulab/ADEPT/blob/main/adept_overview.png"  width="600" height="600">
+	<img src="https://github.com/maiziezhoulab/ADEPT/blob/main/adept_overview.png"  width="550" height="600">
 	<p align="center">
 		<em></em>
 	</p>
