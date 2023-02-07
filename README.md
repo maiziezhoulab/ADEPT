@@ -145,7 +145,5 @@ For using ADEPT on DLPFC data, run
 
 Citation
 --------
-Yunfei Hu, et al. "ADEPT: Autoencoder with Differentially Expressed Genes and Imputation for a Robust Spatial Transcriptomics Clustering."
-
-paper currently under review for recombseq-2023
+Y. Hu†, Y. Zhao†, C. T. Schunk, Y. Ma, T. Derr*, X. M. Zhou*. ADEPT: autoencoder with differentially expressed genes and imputation for a robust spatial transcriptomics clustering. (2023) under review
 
