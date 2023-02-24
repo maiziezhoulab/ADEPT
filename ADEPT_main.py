@@ -7,12 +7,13 @@ import os
 from imputation.impute import impute_
 import GAAE
 import argparse
-warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 import time
-import seaborn as sns
+import seaborn as sns 
+from st_loading_utils import load_DLPFC, load_BC, load_mVC, load_mPFC, load_mHypothalamus, load_her2_tumor, load_mMAMP
+warnings.filterwarnings("ignore")
 
 
 def downstream_analyses(section_id_, adata_, ari, save_folder_, save_path, imputed_=0):
@@ -98,30 +99,69 @@ def filter_num_calc(args_, comp_):
 
 def initialize(args_, gene_min_count):
     print("initializing spatial transcriptomic data")
-    input_dir = os.path.join(args_.data_dir, args_.input_data)
-    if args_.input_data != 'starmap':
-        adata_ = sc.read_visium(path=input_dir, count_file=args_.input_data + '_filtered_feature_bc_matrix.h5')
-
-        adata_.var_names_make_unique()
+    data_path = args_.data_dir
+    data_name = args_.input_data
+    if data_name in ['151507', '151508', '151509', '151510', '151669', '151670', '151671', '151672', '151673', '151674', '151675', '151676']:
+        adata_ = load_DLPFC(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
         adata_ori_ = adata_
-        if args_.gt == 1:
-            # read the annotation
-            Ann_df = pd.read_csv(os.path.join(args_.gt_dir, args_.input_data + '_truth.txt'), sep='\t', header=None, index_col=0)
-            Ann_df.columns = ['Ground Truth']
-
-            if args_.input_data == 'sedr':
-
-                adata_.obs['Ground Truth'] = Ann_df.loc[adata_.obs_names, 'Ground Truth'].astype(int)
-                adata_.obs['Ground Truth'] += 1
-                # print(adata_.obs['Ground Truth'])
-                # exit(-1)
-            else:
-                adata_.obs['Ground Truth'] = Ann_df.loc[adata_.obs_names, 'Ground Truth']
-            keep_bcs = adata_.obs.dropna().index
-            adata_ = adata_[keep_bcs].copy()
+        if args_.use_preprocessing:
+            # Normalization
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+            if args_.use_hvgs != 0:
+                sc.pp.highly_variable_genes(adata_, flavor="seurat_v3", n_top_genes=args_.use_hvgs)
+            sc.pp.normalize_total(adata_, target_sum=1e4)
+            sc.pp.log1p(adata_)
         else:
-            adata_.obs['Ground Truth'] = 0
-
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+    elif data_name in ['section1']:
+        adata_ = load_BC(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
+        if args_.use_preprocessing:
+            # Normalization
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+            if args_.use_hvgs != 0:
+                sc.pp.highly_variable_genes(adata_, flavor="seurat_v3", n_top_genes=args_.use_hvgs)
+            sc.pp.normalize_total(adata_, target_sum=1e4)
+            sc.pp.log1p(adata_)
+        else:
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+    elif data_name in ['MA']:
+        adata_ = load_mMAMP(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
+        if args_.use_preprocessing:
+            # Normalization
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+            if args_.use_hvgs != 0:
+                sc.pp.highly_variable_genes(adata_, flavor="seurat_v3", n_top_genes=args_.use_hvgs)
+            sc.pp.normalize_total(adata_, target_sum=1e4)
+            sc.pp.log1p(adata_)
+        else:
+            sc.pp.filter_genes(adata_, min_counts=gene_min_count)
+    elif data_name in ['STARmap_20180505_BY3_1k.h5ad']:
+        adata_ = load_mVC(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
+        # Normalization
+        # sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=3000)
+        sc.pp.normalize_total(adata_, target_sum=1e4)
+        sc.pp.log1p(adata_)
+    elif data_name in ['20180417_BZ5_control', '20180419_BZ9_control', '20180424_BZ14_control']:
+        adata_ = load_mPFC(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
+        sc.pp.normalize_total(adata_, target_sum=1e4)
+        sc.pp.log1p(adata_)
+    elif data_name in ['-0.04', '-0.09', '-0.14', '-0.19', '-0.24', '-0.29']:
+        adata_ = load_mHypothalamus(root_dir=data_path, section_id=data_name)  # special, seems to have been preprocessed
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
+    elif data_name in ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G2', 'H1']:
+        adata_ = load_her2_tumor(root_dir=data_path, section_id=data_name)
+        adata_.obs['Ground Truth'] = adata_.obs['original_clusters']
+        adata_ori_ = adata_
         if args_.use_preprocessing:
             # Normalization
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
@@ -132,16 +172,8 @@ def initialize(args_, gene_min_count):
         else:
             sc.pp.filter_genes(adata_, min_counts=gene_min_count)
     else:
-        adata_ = sc.read(os.path.join(args_.data_dir, "STARmap_20180505_BY3_1k.h5ad"))
-        adata_.var_names_make_unique()
-        adata_ori_ = adata_
-        # Normalization
-        # sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=3000)
-        sc.pp.normalize_total(adata_, target_sum=1e4)
-        sc.pp.log1p(adata_)
-
-        adata_.obs['Ground Truth'] = adata_.obs['label']
-
+        print("exception in data name")
+        exit(-1)
     return adata_, adata_ori_
 
 
@@ -159,8 +191,8 @@ def DE_num_calc(args_, ad):
         print("section id = ", args_.input_data)
         nzr_list = []
         for i in range(3):
-            GAAE.Cal_Spatial_Net(ad, rad_cutoff=args_.radius)
-            GAAE.Stats_Spatial_Net(ad)
+            GAAE.get_kNN(ad, rad_cutoff=args_.radius)
+            # GAAE.Stats_Spatial_Net(ad)
             nzr = GAAE.DE_nzr(ad, n_epochs=1000, num_cluster=args_.cluster_num, dif_k=de_, device_id=args_.use_gpu_id)
             nzr_list.append(nzr)
         if args_.de_nzr_min <= np.mean(nzr_list) <= args_.de_nzr_max:

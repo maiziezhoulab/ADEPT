@@ -410,7 +410,7 @@ def DE_nzr(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
 
     data = Transfer_pytorch_Data(adata_Vars)
 
-    model = STAGATE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
+    model = GAAE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
     data = data.to(device)
     print(model)
 
