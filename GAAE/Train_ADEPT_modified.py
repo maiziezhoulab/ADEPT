@@ -135,8 +135,8 @@ def train_STA_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
     model.eval()
     embed, recon, pred = model(data.x, data.edge_index)
 
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['test'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['test'] = temp
     adata = mclust_R(adata, num_cluster=7, used_obsm='test')
     out = adata.obs.dropna()
     print(out['mclust'], out['Ground Truth'])
@@ -172,8 +172,8 @@ def train_STA_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
     model.eval()
     embed, recon, pred = model(data.x, data.edge_index)
 
-    STAGATE_rep = pred.to('cpu').detach().numpy()
-    adata.obsm['test'] = STAGATE_rep
+    temp = pred.to('cpu').detach().numpy()
+    adata.obsm['test'] = temp
     adata = mclust_R(adata, num_cluster=7, used_obsm='test')
     out = adata.obs.dropna()
     ARI = adjusted_rand_score(out['mclust'], out['Ground Truth'])
@@ -265,8 +265,8 @@ def train_STA_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_clust
 
     model.eval()
     embed, recon = model(data.x, data.edge_index)
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['ade'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['ade'] = temp
     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='ade', save_obs='mclust')
     out = adata.obs.dropna()
     # print(out['mclust'])
@@ -334,8 +334,8 @@ def train_STA_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_clust
     model2.eval()
     embed, recon = model2(data2.x, data2.edge_index)
 
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['ade_impute'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['ade_impute'] = temp
     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='ade_impute', save_obs='mclust_impute')
     out = adata.obs.dropna()
     # print(out['mclust_impute'])
@@ -399,8 +399,8 @@ def DE_nzr(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
 
     model.eval()
     embed, recon = model(data.x, data.edge_index)
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['test'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['test'] = temp
     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
 
     print("selecting DEs after first round of clustering ...")
@@ -442,587 +442,6 @@ def DE_nzr(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
     print("DE expression matrix non-zero rate = ", str(nzr_))
 
     return nzr_
-
-
-# def train_STA(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
-#               gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
-#               random_seed=0, device_id='0'):
-#     """\
-#     Training graph attention auto-encoder.
-
-#     Parameters
-#     ----------
-#     adata
-#         AnnData object of scanpy package.
-#     hidden_dims
-#         The dimension of the encoder.
-#     n_epochs
-#         Number of total epochs in training.
-#     lr
-#         Learning rate for AdamOptimizer.
-#     key_added
-#         The latent embeddings are saved in adata.obsm[key_added].
-#     gradient_clipping
-#         Gradient Clipping.
-#     weight_decay
-#         Weight decay for AdamOptimizer.
-#     save_loss
-#         If True, the training loss is saved in adata.uns['STAGATE_loss'].
-#     save_reconstrction
-#         If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
-#     device
-#         See torch.device.
-
-#     Returns
-#     -------
-#     AnnData
-#     """
-#     device = torch.device('cuda:' + device_id if torch.cuda.is_available() else 'cpu')
-#     # seed_everything()
-#     if hidden_dims is None:
-#         hidden_dims = [512, 30]
-#     seed = random_seed
-#     import random
-#     random.seed(seed)
-#     torch.manual_seed(seed)
-#     torch.cuda.manual_seed_all(seed)
-#     np.random.seed(seed)
-
-#     adata.X = sp.csr_matrix(adata.X)
-
-#     if 'highly_variable' in adata.var.columns:
-#         adata_Vars = adata[:, adata.var['highly_variable']]
-#     else:
-#         adata_Vars = adata
-
-#     if verbose:
-#         print('Size of Input: ', adata_Vars.shape)
-#     if 'Spatial_Net' not in adata.uns.keys():
-#         raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
-
-#     data = Transfer_pytorch_Data(adata_Vars)
-
-#     model = STAGATE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
-#     # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#     data = data.to(device)
-#     print(model)
-
-#     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-#     loss_list = []
-#     for epoch in tqdm(range(1, n_epochs + 1)):
-#         model.train()
-#         optimizer.zero_grad()
-#         embed, recon = model(data.x, data.edge_index)
-#         loss = F.mse_loss(data.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#         loss_list.append(loss.to('cpu').detach())
-#         loss.backward()
-#         torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
-#         optimizer.step()
-
-#     model.eval()
-#     embed, recon = model(data.x, data.edge_index)
-#     STAGATE_rep = embed.to('cpu').detach().numpy()
-#     adata.obsm['ade'] = STAGATE_rep
-#     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='ade', save_obs='mclust_impute')
-#     out = adata.obs.dropna()
-#     # print(out['mclust'], out['Ground Truth'])
-#     ARI_ini = adjusted_rand_score(out['mclust_impute'], out['Ground Truth'])
-#     print("ARI = ", ARI_ini)
-
-#     return ARI_ini, adata.copy()
-
-
-# def train_STA_use_DE_recur(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
-#                            gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
-#                            random_seed=0, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')):
-#     """\
-#     Training graph attention auto-encoder.
-#
-#     Parameters
-#     ----------
-#     adata
-#         AnnData object of scanpy package.
-#     hidden_dims
-#         The dimension of the encoder.
-#     n_epochs
-#         Number of total epochs in training.
-#     lr
-#         Learning rate for AdamOptimizer.
-#     key_added
-#         The latent embeddings are saved in adata.obsm[key_added].
-#     gradient_clipping
-#         Gradient Clipping.
-#     weight_decay
-#         Weight decay for AdamOptimizer.
-#     save_loss
-#         If True, the training loss is saved in adata.uns['STAGATE_loss'].
-#     save_reconstrction
-#         If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
-#     device
-#         See torch.device.
-#
-#     Returns
-#     -------
-#     AnnData
-#     """
-#
-#     # seed_everything()
-#     if hidden_dims is None:
-#         hidden_dims = [512, 30]
-#     seed = random_seed
-#     import random
-#     random.seed(seed)
-#     torch.manual_seed(seed)
-#     torch.cuda.manual_seed_all(seed)
-#     np.random.seed(seed)
-#
-#     adata.X = sp.csr_matrix(adata.X)
-#
-#     if 'highly_variable' in adata.var.columns:
-#         adata_Vars = adata[:, adata.var['highly_variable']]
-#     else:
-#         adata_Vars = adata
-#
-#     if verbose:
-#         print('Size of Input: ', adata_Vars.shape)
-#     if 'Spatial_Net' not in adata.uns.keys():
-#         raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
-#
-#     data = Transfer_pytorch_Data(adata_Vars)
-#
-#     model = STAGATE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
-#     # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#     data = data.to(device)
-#     print(model)
-#
-#     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-#
-#     loss_list = []
-#     for epoch in tqdm(range(1, n_epochs + 1)):
-#         model.train()
-#         optimizer.zero_grad()
-#         embed, recon = model(data.x, data.edge_index)
-#         loss = F.mse_loss(data.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#         loss_list.append(loss)
-#         loss.backward()
-#         torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
-#         optimizer.step()
-#
-#     model.eval()
-#     embed, recon = model(data.x, data.edge_index)
-#
-#     STAGATE_rep = embed.to('cpu').detach().numpy()
-#     adata.obsm['test'] = STAGATE_rep
-#     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
-#     out = adata.obs.dropna()
-#     # print(out['mclust'], out['Ground Truth'])
-#     ARI_ini = adjusted_rand_score(out['mclust'], out['Ground Truth'])
-#     print("ARI = ", ARI_ini)
-#
-#     # get DE from labels
-#     de_of_epochs = []
-#     ARI_of_epochs = []
-#     for k in range(15):
-#         print("selecting DEs after first round of clustering ...")
-#         dif_genes_by_cluster_num = []
-#         for i_ in range(num_cluster):
-#             # print(set(adata.obs['mclust'].to_list()))
-#             # print(adata.obs['mclust'] == i_+1)
-#             keep_bcs_ = adata.obs.loc[adata.obs['mclust'] == i_+1].index
-#
-#             keep_bcs_control = adata.obs.loc[adata.obs['mclust'] != i_+1].index
-#             #     print(keep_bcs_)
-#             adata_new = adata[keep_bcs_].copy()
-#             test_array = adata_new.X.toarray().T
-#
-#             adata_gt_new_control = adata[keep_bcs_control].copy()
-#             ctrl_array = adata_gt_new_control.X.toarray().T
-#
-#             gene_list = adata.var.index[:, np.newaxis]
-#             print(test_array.shape, ctrl_array.shape)
-#             # print(gene_list)
-#             print("label = ", i_+1)
-#             # if num_cluster == 7:
-#             #     dif_k = 200
-#             # if num_cluster > 10:
-#             #     dif_k = 70
-#             dif_genes = dif_gene_analysis(test_array, ctrl_array, gene_list, dif_k)
-#
-#             dif_genes_new = []
-#             for e in dif_genes:
-#                 dif_genes_new.append(e[0])
-#             dif_genes_by_cluster_num.append(dif_genes_new)
-#         union_ = set()
-#         for i in range(7):
-#             union_ = union_.union(set(dif_genes_by_cluster_num[i]))
-#         de_of_epochs.append(list(union_))
-#         print("train a new AE with the potential DEs ...")
-#         adata_new = adata[:, list(union_)]
-#         data2 = Transfer_pytorch_Data(adata_new)
-#
-#         model2 = STAGATE(hidden_dims=[adata_new.X.shape[1]] + hidden_dims).to(device)
-#         # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#         data2 = data2.to(device)
-#         print(model2)
-#
-#         optimizer = torch.optim.Adam(model2.parameters(), lr=lr, weight_decay=weight_decay)
-#
-#         loss_list = []
-#         for epoch in tqdm(range(1, n_epochs + 1)):
-#             model2.train()
-#             optimizer.zero_grad()
-#             embed, recon = model2(data2.x, data2.edge_index)
-#             loss = F.mse_loss(data2.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#             loss_list.append(loss)
-#             loss.backward()
-#             torch.nn.utils.clip_grad_norm_(model2.parameters(), gradient_clipping)
-#             optimizer.step()
-#
-#         model2.eval()
-#         embed, recon = model2(data2.x, data2.edge_index)
-#
-#         STAGATE_rep = embed.to('cpu').detach().numpy()
-#         adata.obsm['test'] = STAGATE_rep
-#         adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
-#         out = adata.obs.dropna()
-#         ARI = adjusted_rand_score(out['mclust'], out['Ground Truth'])
-#         # print("training ", sample[section_index][1], " done!")
-#         print("finalized ARI = ", ARI)
-#         ARI_of_epochs.append(ARI)
-#         # if save_loss:
-#         #     adata.uns['STAGATE_loss'] = loss
-#         # if save_reconstrction:
-#         #     ReX = out.to('cpu').detach().numpy()
-#         #     ReX[ReX < 0] = 0
-#         #     adata.layers['STAGATE_ReX'] = ReX
-#
-#     return ARI_ini, ARI_of_epochs, de_of_epochs, adata
-
-
-# def train_jointSTA_use_DE(adata, secs, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
-#                           gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
-#                           random_seed=0, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')):
-#     """\
-#     Training graph attention auto-encoder.
-
-#     Parameters
-#     ----------
-#     adata
-#         AnnData object of scanpy package.
-#     hidden_dims
-#         The dimension of the encoder.
-#     n_epochs
-#         Number of total epochs in training.
-#     lr
-#         Learning rate for AdamOptimizer.
-#     key_added
-#         The latent embeddings are saved in adata.obsm[key_added].
-#     gradient_clipping
-#         Gradient Clipping.
-#     weight_decay
-#         Weight decay for AdamOptimizer.
-#     save_loss
-#         If True, the training loss is saved in adata.uns['STAGATE_loss'].
-#     save_reconstrction
-#         If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
-#     device
-#         See torch.device.
-
-#     Returns
-#     -------
-#     AnnData
-#     """
-
-#     # seed_everything()
-#     sec1 = []
-#     sec2 = []
-#     sec3 = []
-#     sec4 = []
-#     sec1_fi = []
-#     sec2_fi = []
-#     sec3_fi = []
-#     sec4_fi = []
-#     if hidden_dims is None:
-#         hidden_dims = [512, 30]
-#     seed = random_seed
-#     import random
-#     random.seed(seed)
-#     torch.manual_seed(seed)
-#     torch.cuda.manual_seed_all(seed)
-#     np.random.seed(seed)
-
-#     adata.X = sp.csr_matrix(adata.X)
-
-#     if 'highly_variable' in adata.var.columns:
-#         adata_Vars = adata[:, adata.var['highly_variable']]
-#     else:
-#         adata_Vars = adata
-
-#     if verbose:
-#         print('Size of Input: ', adata_Vars.shape)
-#     if 'Spatial_Net' not in adata.uns.keys():
-#         raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
-
-#     data = Transfer_pytorch_Data(adata_Vars)
-
-#     model = STAGATE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
-#     # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#     data = data.to(device)
-#     print(model)
-
-#     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-#     loss_list = []
-#     for epoch in tqdm(range(1, n_epochs + 1)):
-#         model.train()
-#         optimizer.zero_grad()
-#         embed, recon = model(data.x, data.edge_index)
-#         loss = F.mse_loss(data.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#         loss_list.append(loss)
-#         loss.backward()
-#         torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
-#         optimizer.step()
-
-#     model.eval()
-#     embed, recon = model(data.x, data.edge_index)
-
-#     STAGATE_rep = embed.to('cpu').detach().numpy()
-#     adata.obsm['test'] = STAGATE_rep
-#     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
-#     out = adata.obs.dropna()
-#     # print(out['mclust'], out['Ground Truth'])
-#     ARI_ini = adjusted_rand_score(out['mclust'], out['Ground Truth'])
-#     print("overall ARI = ", ARI_ini)
-#     for e in secs:
-#         temp_adata = adata.obs.loc[adata.obs['section_id'] == e]
-#         temp_ARI = adjusted_rand_score(temp_adata['mclust'], temp_adata['Ground Truth'])
-#         # ari_doc.append(ARI)
-#         if e == '0':
-#             print('151673')
-#             sec1.append(temp_ARI)
-#         if e == '1':
-#             print('151674')
-#             sec2.append(temp_ARI)
-#         if e == '2':
-#             print('151675')
-#             sec3.append(temp_ARI)
-#         if e == '3':
-#             print('151676')
-#             sec4.append(temp_ARI)
-#         print('single section Adjusted rand index = %.2f' % temp_ARI)
-
-#     # get DE from labels
-#     print("selecting DEs after first round of clustering ...")
-#     dif_genes_by_cluster_num = []
-#     for i_ in range(num_cluster):
-#         # print(set(adata.obs['mclust'].to_list()))
-#         # print(adata.obs['mclust'] == i_+1)
-#         keep_bcs_ = adata.obs.loc[adata.obs['mclust'] == i_+1].index
-
-#         keep_bcs_control = adata.obs.loc[adata.obs['mclust'] != i_+1].index
-#         #     print(keep_bcs_)
-#         adata_new = adata[keep_bcs_].copy()
-#         test_array = adata_new.X.toarray().T
-
-#         adata_gt_new_control = adata[keep_bcs_control].copy()
-#         ctrl_array = adata_gt_new_control.X.toarray().T
-
-#         gene_list = adata.var.index[:, np.newaxis]
-#         print(test_array.shape, ctrl_array.shape)
-#         # print(gene_list)
-#         print("label = ", i_+1)
-#         # if num_cluster == 7:
-#         #     dif_k = 200
-#         # if num_cluster > 10:
-#         #     dif_k = 70
-#         dif_genes = dif_gene_analysis(test_array, ctrl_array, gene_list, dif_k)
-
-#         dif_genes_new = []
-#         for e in dif_genes:
-#             dif_genes_new.append(e[0])
-#         dif_genes_by_cluster_num.append(dif_genes_new)
-#     union_ = set()
-#     for i in range(num_cluster):
-#         union_ = union_.union(set(dif_genes_by_cluster_num[i]))
-
-#     print("train a new AE with the potential DEs ...")
-#     adata_new = adata[:, list(union_)]
-#     data2 = Transfer_pytorch_Data(adata_new)
-
-#     model2 = STAGATE(hidden_dims=[adata_new.X.shape[1]] + hidden_dims).to(device)
-#     # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#     data2 = data2.to(device)
-#     print(model2)
-
-#     optimizer = torch.optim.Adam(model2.parameters(), lr=lr, weight_decay=weight_decay)
-
-#     loss_list = []
-#     for epoch in tqdm(range(1, n_epochs + 1)):
-#         model2.train()
-#         optimizer.zero_grad()
-#         embed, recon = model2(data2.x, data2.edge_index)
-#         loss = F.mse_loss(data2.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#         loss_list.append(loss)
-#         loss.backward()
-#         torch.nn.utils.clip_grad_norm_(model2.parameters(), gradient_clipping)
-#         optimizer.step()
-
-#     model2.eval()
-#     embed, recon = model2(data2.x, data2.edge_index)
-
-#     STAGATE_rep = embed.to('cpu').detach().numpy()
-#     adata.obsm['test'] = STAGATE_rep
-#     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
-#     out = adata.obs.dropna()
-#     ARI = adjusted_rand_score(out['mclust'], out['Ground Truth'])
-#     # print("training ", sample[section_index][1], " done!")
-#     print("overall finalized ARI = ", ARI)
-#     for e in secs:
-#         temp_adata = adata.obs.loc[adata.obs['section_id'] == e]
-#         temp_ARI = adjusted_rand_score(temp_adata['mclust'], temp_adata['Ground Truth'])
-#         # ari_doc.append(ARI)
-#         if e == '0':
-#             print('151673')
-#             sec1_fi.append(temp_ARI)
-#         if e == '1':
-#             print('151674')
-#             sec2_fi.append(temp_ARI)
-#         if e == '2':
-#             print('151675')
-#             sec3_fi.append(temp_ARI)
-#         if e == '3':
-#             print('151676')
-#             sec4_fi.append(temp_ARI)
-#         print('single section finalized ARI = %.2f' % temp_ARI)
-#     # if save_loss:
-#     #     adata.uns['STAGATE_loss'] = loss
-#     # if save_reconstrction:
-#     #     ReX = out.to('cpu').detach().numpy()
-#     #     ReX[ReX < 0] = 0
-#     #     adata.layers['STAGATE_ReX'] = ReX
-
-#     return ARI_ini, sec1, sec2, sec3, sec4, ARI, sec1_fi, sec2_fi, sec3_fi, sec4_fi, union_, adata
-
-
-# def train_jointSTA_no_DE(adata, secs, namelist, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
-#                           gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
-#                           random_seed=0, device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')):
-#     """\
-#     Training graph attention auto-encoder.
-
-#     Parameters
-#     ----------
-#     adata
-#         AnnData object of scanpy package.
-#     hidden_dims
-#         The dimension of the encoder.
-#     n_epochs
-#         Number of total epochs in training.
-#     lr
-#         Learning rate for AdamOptimizer.
-#     key_added
-#         The latent embeddings are saved in adata.obsm[key_added].
-#     gradient_clipping
-#         Gradient Clipping.
-#     weight_decay
-#         Weight decay for AdamOptimizer.
-#     save_loss
-#         If True, the training loss is saved in adata.uns['STAGATE_loss'].
-#     save_reconstrction
-#         If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
-#     device
-#         See torch.device.
-
-#     Returns
-#     -------
-#     AnnData
-#     """
-
-#     # seed_everything()
-#     sec1 = 0
-#     sec2 = 0
-#     sec3 = 0
-#     sec4 = 0
-#     sec1_fi = 0
-#     sec2_fi = 0
-#     sec3_fi = 0
-#     sec4_fi = 0
-#     if hidden_dims is None:
-#         hidden_dims = [512, 30]
-#     seed = random_seed
-#     import random
-#     random.seed(seed)
-#     torch.manual_seed(seed)
-#     torch.cuda.manual_seed_all(seed)
-#     np.random.seed(seed)
-
-#     adata.X = sp.csr_matrix(adata.X)
-
-#     if 'highly_variable' in adata.var.columns:
-#         adata_Vars = adata[:, adata.var['highly_variable']]
-#     else:
-#         adata_Vars = adata
-
-#     if verbose:
-#         print('Size of Input: ', adata_Vars.shape)
-#     if 'Spatial_Net' not in adata.uns.keys():
-#         raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
-
-#     data = Transfer_pytorch_Data(adata_Vars)
-
-#     model = STAGATE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
-#     # model = STAGATE_mod1(hidden_dims=hidden_dims, mlp_dims=7).to(device)
-#     data = data.to(device)
-#     print(model)
-
-#     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-
-#     loss_list = []
-#     for epoch in tqdm(range(1, n_epochs + 1)):
-#         model.train()
-#         optimizer.zero_grad()
-#         embed, recon = model(data.x, data.edge_index)
-#         loss = F.mse_loss(data.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
-#         loss_list.append(loss)
-#         loss.backward()
-#         torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
-#         optimizer.step()
-
-#     model.eval()
-#     embed, recon = model(data.x, data.edge_index)
-
-#     STAGATE_rep = embed.to('cpu').detach().numpy()
-#     adata.obsm['test'] = STAGATE_rep
-#     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
-#     out = adata.obs.dropna()
-#     # print(out['mclust'], out['Ground Truth'])
-#     ARI_ini = adjusted_rand_score(out['mclust'], out['Ground Truth'])
-#     print("overall ARI = ", ARI_ini)
-#     for e in secs:
-#         timestamp = time.strftime("%Y%m%d-%H%M%S")
-#         temp_adata = adata.obs.loc[adata.obs['section_id'] == e]
-#         keep_bcs_ = adata.obs.loc[adata.obs['section_id'] == e].index
-#         temp_adata_ =adata[keep_bcs_].copy()
-#         temp_ARI = adjusted_rand_score(temp_adata['mclust'], temp_adata['Ground Truth'])
-#         sc.pl.spatial(temp_adata_, img_key='hires', color=["mclust", "Ground Truth"], title=["ARI = " + str(temp_ARI), namelist[int(e)] + "Ground Truth"], spot_size=100,
-#                       save=str(temp_ARI) + "_" + timestamp + '.png')
-#         # ari_doc.append(ARI)
-#         if e == '0':
-#             print(namelist[0])
-#             sec1 = temp_ARI
-#         if e == '1':
-#             print(namelist[1])
-#             sec2 = temp_ARI
-#         if e == '2':
-#             print(namelist[2])
-#             sec3 = temp_ARI
-#         if e == '3':
-#             print(namelist[3])
-#             sec4 = temp_ARI
-#         print('single section Adjusted rand index = %.2f' % temp_ARI)
-
-#     return sec1, sec2, sec3, sec4, sec1_fi, sec2_fi, sec3_fi, sec4_fi, adata
 
 
 def train_ADE_GO(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=4,
@@ -1103,8 +522,8 @@ def train_ADE_GO(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=4
 
     model.eval()
     embed, recon = model(data.x, data.edge_index)
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['test'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['test'] = temp
     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
     # out = adata.obs.dropna()
     # print(out['mclust'], out['Ground Truth'])
@@ -1170,8 +589,8 @@ def train_ADE_GO(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=4
     model2.eval()
     embed, recon = model2(data2.x, data2.edge_index)
 
-    STAGATE_rep = embed.to('cpu').detach().numpy()
-    adata.obsm['test'] = STAGATE_rep
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['test'] = temp
     adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='test')
     # out = adata.obs.dropna()
 
