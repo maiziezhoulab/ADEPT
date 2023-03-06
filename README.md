@@ -128,11 +128,11 @@ The meaning of each argument in ***run_CCST.py*** is listed below.
  
 For using ADEPT on DLPFC data, run
 
- `python ADEPT_main.py --input_data=151673 --cluster_num=7 --radius=150 --use_hvgs=0 --runs=3 --de_candidates=None --impute_runs=5` 
+ `python ADEPT_main.py --input_data=151673 --cluster_num=7 --radius=150 --use_hvgs=0 --runs=3 --de_candidates=150,200,250,300,350,400 --impute_runs=1` 
  
  and on STARmap data, run
  
- `python ADEPT_main.py --input_data=starmap --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=None --filter_nzr=0 --impute_runs=10 --save_fig=1`
+ `python ADEPT_main.py --input_data=starmap --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=50,75 --filter_nzr=0 --impute_runs=3 --save_fig=1`
  
 
 ### notice
