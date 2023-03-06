@@ -55,7 +55,7 @@ def dif_gene_analysis(test_array, ctrl_array, gene_list, topK):
     return top200_genes
 
 
-def train_STA_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
+def train_ADEPT_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
                   gradient_clipping=5., weight_decay=0.0001, verbose=True,
                   random_seed=0, save_loss=False, save_reconstrction=False,
                   device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')):
@@ -189,7 +189,7 @@ def train_STA_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
     return ARI_ini, ARI
 
 
-def train_STA_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
+def train_ADEPT_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
                      gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
                      random_seed=0, device_id='0'):
     """\
