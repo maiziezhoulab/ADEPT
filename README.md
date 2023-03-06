@@ -154,5 +154,5 @@ For using ADEPT on DLPFC data, run
 
 Citation
 --------
-Y. Hu†, Y. Zhao†, C. T. Schunk, Y. Ma, T. Derr*, X. M. Zhou*. ADEPT: autoencoder with differentially expressed genes and imputation for a robust spatial transcriptomics clustering. (Recomb-seq 2023)
+Y. Hu, Y. Zhao, C. T. Schunk, Y. Ma, T. Derr*, X. M. Zhou*. ADEPT: autoencoder with differentially expressed genes and imputation for a robust spatial transcriptomics clustering. (Recomb-seq 2023)
 
