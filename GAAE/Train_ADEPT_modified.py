@@ -355,36 +355,6 @@ def train_STA_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_clust
 def DE_nzr(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
                      gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
                      random_seed=0, device_id='0'):
-    """\
-    Training graph attention auto-encoder.
-
-    Parameters
-    ----------
-    adata
-        AnnData object of scanpy package.
-    hidden_dims
-        The dimension of the encoder.
-    n_epochs
-        Number of total epochs in training.
-    lr
-        Learning rate for AdamOptimizer.
-    key_added
-        The latent embeddings are saved in adata.obsm[key_added].
-    gradient_clipping
-        Gradient Clipping.
-    weight_decay
-        Weight decay for AdamOptimizer.
-    save_loss
-        If True, the training loss is saved in adata.uns['STAGATE_loss'].
-    save_reconstrction
-        If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
-    device
-        See torch.device.
-
-    Returns
-    -------
-    AnnData
-    """
     device = torch.device('cuda:' + device_id if torch.cuda.is_available() else 'cpu')
     # seed_everything()
     if hidden_dims is None:

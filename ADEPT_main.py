@@ -197,23 +197,34 @@ def DE_num_calc(args_, ad):
             nzr_list.append(nzr)
         if args_.de_nzr_min <= np.mean(nzr_list) <= args_.de_nzr_max:
             out_list.append(de_)
+        if args_.de_nzr_max <= np.mean(nzr_list):
+            break
+        print(de_, nzr)
     return out_list
 
 
-def impute(args_, adata_list_, g_union):
+def impute(args_, adata_list_, g_union, de_top_k_list_):
     m_list = []
     for adata_ in adata_list_:
         barcode_list_ = adata_.obs.index.values.tolist()
         pred_label_list_ = adata_.obs["mclust_impute"].tolist()
         # print(pred_label_list_[:30])
         pred_label_list_ = [x - 1 for x in pred_label_list_]
-        # print(adata_.obs.index)
-        # print(g_union)
+        g_union = g_union.intersection(set(adata_.var.index.tolist()))
         exp_m_ = adata_[:, list(g_union)].X.toarray()  # spots by genes
         # exp_m_ = adata_.X.toarray()
         m_list.append(impute_(args_.cluster_num, exp_m_, pred_label_list_, barcode_list_))
+        # print(adata_.obs.index)
+        # print(adata_.X.shape)
+        # print(g_union)
+        # try:
+        #     exp_m_ = adata_[:, list(g_union)].X.toarray()  # spots by genes
+        #     # exp_m_ = adata_.X.toarray()
+        #     m_list.append(impute_(args_.cluster_num, exp_m_, pred_label_list_, barcode_list_))
+        # except:
+        #     continue
 
-    total_m = args_.impute_runs * len(de_top_k_list)
+    total_m = args_.impute_runs * len(de_top_k_list_)
     avg_m = np.zeros_like(m_list[0])
     for m in m_list:
         avg_m += m
@@ -221,13 +232,13 @@ def impute(args_, adata_list_, g_union):
     avg_m /= total_m
     # avg_m is the final output
 
-    h5ad_filename = os.path.join(root_d, 'final_imputed', args_.input_data + 'de_imputed_' + str(total_m) + 'X.h5ad')
-    print("h5ad filename = ", h5ad_filename)
+    # h5ad_filename = os.path.join(root_d_, 'final_imputed', args_.input_data + 'de_imputed_' + str(total_m) + 'X.h5ad')
+    # print("h5ad filename = ", h5ad_filename)
     adata_list_[0] = adata_list_[0][:, list(g_union)]
     adata_list_[0].X = sparse.csr_matrix(avg_m)
 
-    adata_list_[0].write_h5ad(h5ad_filename)
-    print("h5ad file successfully written")
+    # adata_list_[0].write_h5ad(h5ad_filename)
+    # print("h5ad file successfully written")
     return adata_list_[0]
 
 
@@ -328,7 +339,7 @@ if __name__ == '__main__':
         print(np.std(ari_doc_final))
 
         g_union = list(adata_list[0].var.index.values)
-        imputed_ad = impute(args, adata_list, g_union)
+        imputed_ad = impute(args, adata_list, g_union, de_top_k_list)
 
 
         """result of imputed data"""
