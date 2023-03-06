@@ -57,6 +57,8 @@ For 10x Spatial Transcripts (ST) datasets, files should be put in the same struc
 
 ### ADEPT main function
 
+***ADEPT_main.py*** is currently in debugging process. Will fix issues and get it back soon.
+
 Run ADEPT 
 
 The main function of ADEPT is implemented in ***ADEPT_main.py***. When using ADEPT, we do not need to specify any data types. 
