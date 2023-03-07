@@ -192,7 +192,7 @@ def train_ADEPT_mod(adata, hidden_dims=None, n_epochs=750, lr=0.001,
 def train_ADEPT_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
                      gradient_clipping=5., weight_decay=0.0001, verbose=True, dif_k=200,
                      random_seed=0, device_id='0'):
-    """\
+    """
     Training graph attention auto-encoder.
 
     Parameters
@@ -350,6 +350,93 @@ def train_ADEPT_use_DE(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_clu
     #     adata.layers['STAGATE_ReX'] = ReX
 
     return ARI_ini, ARI, union_, adata.copy()
+
+
+def train_ADEPT(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,
+                gradient_clipping=5., weight_decay=0.0001, verbose=True,
+                random_seed=0, device_id='0'):
+    """
+    Training graph attention auto-encoder.
+
+    Parameters
+    ----------
+    adata
+        AnnData object of scanpy package.
+    hidden_dims
+        The dimension of the encoder.
+    n_epochs
+        Number of total epochs in training.
+    lr
+        Learning rate for AdamOptimizer.
+    key_added
+        The latent embeddings are saved in adata.obsm[key_added].
+    gradient_clipping
+        Gradient Clipping.
+    weight_decay
+        Weight decay for AdamOptimizer.
+    save_loss
+        If True, the training loss is saved in adata.uns['STAGATE_loss'].
+    save_reconstrction
+        If True, the reconstructed expression profiles are saved in adata.layers['STAGATE_ReX'].
+    device
+        See torch.device.
+
+    Returns
+    -------
+    AnnData
+    """
+    device = torch.device('cuda:' + device_id if torch.cuda.is_available() else 'cpu')
+    # seed_everything()
+    if hidden_dims is None:
+        hidden_dims = [512, 30]
+    seed = random_seed
+    import random
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+
+    adata.X = sp.csr_matrix(adata.X)
+
+    if 'highly_variable' in adata.var.columns:
+        adata_Vars = adata[:, adata.var['highly_variable']]
+    else:
+        adata_Vars = adata
+
+    if verbose:
+        print('Size of Input: ', adata_Vars.shape)
+    if 'Spatial_Net' not in adata.uns.keys():
+        raise ValueError("Spatial_Net is not existed! Run Cal_Spatial_Net first!")
+
+    data = Transfer_pytorch_Data(adata_Vars)
+
+    model = GAAE(hidden_dims=[adata_Vars.X.shape[1]]+hidden_dims).to(device)
+    data = data.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    loss_list = []
+    for epoch in tqdm(range(1, n_epochs + 1)):
+        model.train()
+        optimizer.zero_grad()
+        embed, recon = model(data.x, data.edge_index)
+        loss = F.mse_loss(data.x, recon)  # F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+        loss_list.append(loss.to('cpu').detach())
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
+        optimizer.step()
+
+    model.eval()
+    embed, recon = model(data.x, data.edge_index)
+    temp = embed.to('cpu').detach().numpy()
+    adata.obsm['ade'] = temp
+    adata = mclust_R(adata, num_cluster=num_cluster, used_obsm='ade', save_obs='mclust')
+    out = adata.obs.dropna()
+    # print(out['mclust'])
+    ARI_ini = adjusted_rand_score(out['mclust'], out['Ground Truth'])
+    print("ARI = ", ARI_ini)
+
+    return ARI_ini, adata.copy()
 
 
 def DE_nzr(adata, hidden_dims=None, n_epochs=1000, lr=0.001, num_cluster=7,

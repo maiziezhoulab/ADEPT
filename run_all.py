@@ -12,9 +12,9 @@ plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 import time
 import seaborn as sns 
-
+from GAAE.utils import impute, DE_num_calc, initialize, filter_num_calc, downstream_analyses 
 warnings.filterwarnings("ignore")
-from ADEPT_main import filter_num_calc, initialize, DE_num_calc, impute
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, default="./", help="root dir for input data")
@@ -190,8 +190,12 @@ for setting_combi in setting_combinations:
             imputed_ad = adata
 
         """result of imputed data"""
-        GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
-        ari_ini, ARI, de_list, adata_out = GAAE.train_ADEPT_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
+        if de_top_k_list != []:
+            GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
+            ari_ini, ARI, de_list, adata_out = GAAE.train_ADEPT_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
+        else:
+            GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
+            ARI, adata_out = GAAE.train_ADEPT(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
 
         print('Dataset:', dataset)
         print('ARI:', ARI)
