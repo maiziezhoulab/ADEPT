@@ -2,7 +2,7 @@
 
 ## News
 
-Our paper has just been accepted by Recomb-seq 2023!
+Our paper has just been accepted by RECOMB-SEQ 2023!
 
 ## Introduction 
 
@@ -56,8 +56,6 @@ For 10x Spatial Transcripts (ST) datasets, files should be put in the same struc
   >> 151673_filtered_feature_bc_matrix.h5 # gene expression data
 
 ### ADEPT main function
-
-***ADEPT_main.py*** is currently in debugging process. Will fix issues and get it back soon.
 
 Run ADEPT 
 
