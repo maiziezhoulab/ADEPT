@@ -61,7 +61,7 @@ Run ADEPT
 
 The main function of ADEPT is implemented in ***ADEPT_main.py***. When using ADEPT, we do not need to specify any data types. 
 
-The meaning of each argument in ***run_CCST.py*** is listed below.
+The meaning of each argument in ***ADEPT_main.py*** is listed below.
 
     parser.add_argument('--impute_cluster_num', type=str, default="7", help="diff cluster numbers for imputation")
     parser.add_argument('--cluster_num', type=int, default=7, help="input data cluster number")
