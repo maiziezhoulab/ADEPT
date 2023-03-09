@@ -10,6 +10,8 @@ import os
 import scanpy as sc
 import GAAE
 from torch_geometric.data import Data
+import anndata
+import copy
 
 
 def index_to_mask(index, size):
@@ -216,14 +218,31 @@ def filter_num_calc(args_, comp_):
     if comp_ is not None:
         return comp_
     print("optimizing minimum filter number")
-    input_dir = os.path.join(args_.data_dir, args_.input_data)
-    adata = sc.read_visium(path=input_dir, count_file=args_.input_data + '_filtered_feature_bc_matrix.h5')
-
+    # input_dir = os.path.join(args_.data_dir, args_.input_data)
+    data_name = args_.input_data
+    data_path = args_.data_dir
+    if data_name in ['151507', '151508', '151509', '151510', '151669', '151670', '151671', '151672', '151673', '151674', '151675', '151676', 'MA', 'section1']:
+        adata = load_DLPFC(root_dir=data_path, section_id=data_name)
+    elif data_name in ['STARmap_20180505_BY3_1k.h5ad']:
+        adata = load_mVC(root_dir=data_path, section_id=data_name)
+    elif data_name in ['20180417_BZ5_control', '20180419_BZ9_control', '20180424_BZ14_control']:
+        adata = load_mPFC(root_dir=data_path, section_id=data_name)
+    elif data_name in ['-0.04', '-0.09', '-0.14', '-0.19', '-0.24', '-0.29']:
+        adata = load_mHypothalamus(root_dir=data_path, section_id=data_name)  # special, seems to have been preprocessed
+    elif data_name in ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G2', 'H1']:
+        adata = load_her2_tumor(root_dir=data_path, section_id=data_name)
+    else:
+        print("exception in dataname")
+        exit(-1)
     adata.var_names_make_unique()
 
     for temp_count in range(5, 150):
         sc.pp.filter_genes(adata, min_counts=temp_count)
-        if np.count_nonzero(adata.X.todense())/(adata.X.shape[0]*adata.X.shape[1]) > args_.filter_nzr:
+        try:
+            X = adata.X.todense()
+        except:
+            X = adata.X
+        if np.count_nonzero(X)/(X.shape[0]*X.shape[1]) > args_.filter_nzr:
             return temp_count
     return 150
 
@@ -311,12 +330,27 @@ def initialize(args_, gene_min_count):
 def DE_num_calc(args_, ad):
     print("optimizing top DEs before imputation")
     out_list = []
-    if ad.X.shape[0] < 3000:
-        interval_ = 25
-        max_ = 200
+    try:
+        X = ad.X.todense()
+    except:
+        X = ad.X
+    nzr_ori = np.count_nonzero(X)/(X.shape[0]*X.shape[1])
+    print("original non-zero = ", nzr_ori)
+    if args_.cluster_num > 30:
+        print("too many clusters for DEG selection")
+        return []
+    if nzr_ori >= args_.de_nzr_max:
+        print("original non-zero rate suggests that the data quality is good enough. skipping DEG selection")
+        return []
     else:
-        interval_ = 50
-        max_ = 500
+        print(ad.X.shape)
+        if ad.X.shape[1] < 3000:
+            interval_ = 25
+            max_ = 201
+        else:
+            interval_ = 50
+            max_ = 501
+        
     for de_ in range(interval_, max_, interval_):
         print("DE topk = ", de_)
         print("section id = ", args_.input_data)
@@ -331,7 +365,98 @@ def DE_num_calc(args_, ad):
         if args_.de_nzr_max <= np.mean(nzr_list):
             break
         print(de_, nzr)
+    if out_list == []:
+        print("data quality is not good even after the DEG selection")
+        out_list = range(interval_, max_, interval_)[-2:]
     return out_list
+
+
+def average_impute_(unimputed_m):
+
+    row_num, col_num = unimputed_m.shape
+    unimputed_m_transpose = unimputed_m.T
+    imputed_m = copy.deepcopy(unimputed_m_transpose)
+    for col_idx in range(col_num):
+        sum_ = np.sum(unimputed_m_transpose[col_idx])
+        denom_ = np.count_nonzero(unimputed_m_transpose[col_idx])
+        if denom_ == 0:
+            pass
+        else:
+            # print(sum_, denom_)
+            avg_ = sum_ / denom_
+            imputed_m[col_idx] = np.where(imputed_m[col_idx] == 0, avg_, imputed_m[col_idx])
+
+    return imputed_m.T
+
+
+def impute_(cluster_num, exp_m, pred_label_list, barcode_list):
+    dict_ = {}
+
+    """
+    doc num of spots for each cluster
+    """
+    spots_num_sep = []
+    for cluster_idx in range(cluster_num):
+        spots_num_sep.append(0)
+
+    imputed_exp_m = np.zeros_like(exp_m)
+    for idx_ in range(len(barcode_list)):
+        # e1: idx, e2: pred_label, e3: expression
+        dict_[idx_] = [int(pred_label_list[idx_]), exp_m[idx_]]
+        # print(int(pred_label_list[idx_]))
+        spots_num_sep[int(pred_label_list[idx_])] += 1
+
+    # print(spots_num_sep)
+    """
+    initialize empty matrix for each cluster
+    """
+    matrix_list = []
+    for cluster_idx in range(cluster_num):
+        # print((spots_num_sep[cluster_idx], exp_m.shape[1]))
+        matrix_list.append(np.zeros((spots_num_sep[cluster_idx], exp_m.shape[1])))
+        spots_num_sep[cluster_idx] = 0
+
+    """
+    assign spots within same cluster to each matrix
+    """
+
+    # for cluster_idx in range(cluster_num):
+    for k in range(len(barcode_list)):
+        # if int(dict_[k][0]) == cluster_idx:
+        # print(k)
+        # print(matrix_list)
+        # print(k)
+        # print(dict_[k][0])
+        # print(dict_[k][0], spots_num_sep[dict_[k][0]])
+        matrix_list[dict_[k][0]][spots_num_sep[dict_[k][0]]] = dict_[k][1]
+        # print()
+        spots_num_sep[dict_[k][0]] += 1
+    print(spots_num_sep)
+    """
+    imputation within each smaller matrix
+    """
+    for cluster_idx in range(cluster_num):
+        matrix_list[cluster_idx] = average_impute_(matrix_list[cluster_idx])
+        spots_num_sep[cluster_idx] = 0
+
+    """
+    assign imputed values in each smaller matrix back to the large one
+    """
+    for k in range(len(barcode_list)):
+
+        imputed_exp_m[k] = matrix_list[dict_[k][0]][spots_num_sep[dict_[k][0]]]
+        spots_num_sep[dict_[k][0]] += 1
+    # imputed_matrices.append(imputed_exp_m)
+    #
+    # total_m = 6
+    # avg_m = np.zeros_like(imputed_matrices[0])
+    # for m in imputed_matrices:
+    #     avg_m += m
+    # # final inputed matrix
+    # avg_m /= total_m
+    # # avg_m is the final output
+    # print(avg_m)
+    return imputed_exp_m
 
 
 def impute(args_, adata_list_, g_union, de_top_k_list_):
@@ -366,7 +491,7 @@ def impute(args_, adata_list_, g_union, de_top_k_list_):
     # h5ad_filename = os.path.join(root_d_, 'final_imputed', args_.input_data + 'de_imputed_' + str(total_m) + 'X.h5ad')
     # print("h5ad filename = ", h5ad_filename)
     adata_list_[0] = adata_list_[0][:, list(g_union)]
-    adata_list_[0].X = sparse.csr_matrix(avg_m)
+    adata_list_[0].X = sp.csr_matrix(avg_m)
 
     # adata_list_[0].write_h5ad(h5ad_filename)
     # print("h5ad file successfully written")
