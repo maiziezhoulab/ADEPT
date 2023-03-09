@@ -15,8 +15,7 @@ plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 import time
 import seaborn as sns 
-from st_loading_utils import load_DLPFC, load_BC, load_mVC, load_mPFC, load_mHypothalamus, load_her2_tumor, load_mMAMP
-# from utils import impute, DE_num_calc, initialize, filter_num_calc, downstream_analyses 
+from GAAE.utils import impute, DE_num_calc, initialize, filter_num_calc, downstream_analyses
 warnings.filterwarnings("ignore")
 
 
@@ -45,205 +44,94 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.impute_cluster_num = args.impute_cluster_num.split(",")  # ["5", "6", "7"]
     root_d = args.data_dir
-    if args.input_data != 'starmap':
+
+    if args.input_data not in ['20180417_BZ5_control', '20180419_BZ9_control', '20180424_BZ14_control', 'STARmap_20180505_BY3_1k.h5ad']:
         filter_num = filter_num_calc(args, args.filter_num)
         print("optimized filter number = ", filter_num)
     else:
         filter_num = 0
     adata, adata_ori = initialize(args, filter_num)
+
     if args.de_candidates == "None":
-        de_top_k_list = DE_num_calc(args, adata)
-        print("optimized de list = ", de_top_k_list)
+        if os.path.exists('./cache/' + args.data_dir.split('/')[-2] + dataset + '.txt'):
+            with open('./cache/' + args.data_dir.split('/')[-2] + '.txt', 'r') as fp:
+                line = fp.readlines()[0]
+                split_ = line.strip().split(",")
+                de_top_k_list = []
+                for e in split_:
+                    de_top_k_list.append(int(e))
+            print("previously cached de list = ", de_top_k_list)
+        else:
+            de_top_k_list = DE_num_calc(args, adata)
+            print("optimized de list = ", de_top_k_list)
+            with open('./cache/' + args.data_dir.split('/')[-2] + '.txt', 'a+') as fp:
+                # fp.write('de list: ')
+                fp.write(','.join([str(i) for i in de_top_k_list]))
+                # fp.write('\n')
     else:
         split_ = args.de_candidates.strip().split(",")
         de_top_k_list = []
         for e in split_:
             de_top_k_list.append(int(e))
         print("manually defined de list = ", de_top_k_list)
-    adata_list = []
-    if args.no_de == 1:
-        print("none DE selection mode")
-        print("section id = ", args.input_data)
-        ari_doc_ini = []
-        ari_doc_final = []
-
-        for i in range(args.impute_runs):
+    
+    de_list_epoch = []
+    if de_top_k_list != []:
+        print("performing DEGs selection")
+        adata_list = []
+        for de_ in de_top_k_list:
             for cluster_n in args.impute_cluster_num:
                 print("cluster_n = ", cluster_n)
-                GAAE.Cal_Spatial_Net(adata, rad_cutoff=args.radius)
-                GAAE.Stats_Spatial_Net(adata)
+                GAAE.get_kNN(adata, rad_cutoff=args.radius)
 
-                ari_ini, adata_out = GAAE.train_STA(adata, n_epochs=1000,
-                                                       num_cluster=int(cluster_n),
-                                                       device_id=args.use_gpu_id)
-                ari_doc_ini.append(ari_ini)
+                ari_ini, ari_final, de_list, adata_out = GAAE.train_ADEPT_use_DE(adata, n_epochs=1000,
+                                                                            num_cluster=int(cluster_n),
+                                                                            dif_k=de_, device_id=args.use_gpu_id)
+                de_list_epoch.append(de_list)
                 adata_list.append(adata_out)
-
-                if args.save_fig:
-                    if args.input_data == 'starmap':
-                        timestr = time.strftime("%Y%m%d-%H%M%S")
-                        plt.rcParams["figure.figsize"] = (3, 3)
-                        sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
-                                      title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=95)
-                        plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
-                        timestr = time.strftime("%Y%m%d-%H%M%S")
-                        plt.rcParams["figure.figsize"] = (3, 3)
-                        sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
-                                      title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=55)
-                        plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    if args.input_data == 'sedr':
-                        timestr = time.strftime("%Y%m%d-%H%M%S")
-                        plt.rcParams["figure.figsize"] = (3, 3)
-                        sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
-                                      title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150, color_map='viridis')
-                        print(adata_out.uns)
-                        print(adata_out.uns['mclust_impute_colors'])
-                        adata_out.uns['mclust_impute_colors'] = ['#440154', '#481467', '#482576', '#453781', '#404688',
-                                                             '#39558c', '#33638d', '#2d718e', '#287d8e', '#238a8d',
-                                                             '#1f968b', '#20a386', '#29af7f', '#3dbc74', '#56c667',
-                                                             '#75d054', '#95d840', '#bade28', '#dde318', '#fde725']
-                        print(adata_out.uns['mclust_impute_colors'])
-                        sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
-                                      title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150, color_map='viridis')
-                        plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-
-        print(ari_doc_ini)
-        print(np.mean(ari_doc_ini))
-        print(np.std(ari_doc_ini))
-
-        print(ari_doc_final)
-        print(np.mean(ari_doc_final))
-        print(np.std(ari_doc_final))
-
-        g_union = list(adata_list[0].var.index.values)
-        imputed_ad = impute(args, adata_list, g_union, de_top_k_list)
-
-
-        """result of imputed data"""
-        GAAE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
-        ari_doc_ini = []
-        for i in range(args.runs):
-            ari_ini, adata = GAAE.train_STA(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num,
-                                               device_id=args.use_gpu_id)
-            ari_doc_ini.append(ari_ini)
-            if args.save_fig:
-                if args.input_data == 'starmap':
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust", "Ground Truth"],
-                                  title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=95)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata, ari_ini, root_d, args.input_data + "_" + timestr)
-                if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust", "Ground Truth"],
-                                  title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=55)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata, ari_ini, root_d, args.input_data + "_" + timestr)
-                if args.input_data == 'sedr':
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust_impute", "Ground Truth"],
-                                  title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150)
-                    # print(adata_out.uns['mclust_impute_colors'])
-                    adata.uns['mclust_impute_colors'] = ['#440154', '#481467', '#482576', '#453781', '#404688',
-                                                         '#39558c', '#33638d', '#2d718e', '#287d8e', '#238a8d',
-                                                         '#1f968b', '#20a386', '#29af7f', '#3dbc74', '#56c667',
-                                                         '#75d054', '#95d840', '#bade28', '#dde318', '#fde725']
-                    # print(adata_out.uns['mclust_impute_colors'])
-                    sc.pl.spatial(adata, color=["mclust_impute", "Ground Truth"],
-                                  title=['Our method (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata, ari_ini, root_d, args.input_data + "_" + timestr)
-        print(ari_doc_ini)
-        print(np.mean(ari_doc_ini))
-        print(np.std(ari_doc_ini))
-    else:
-        # exit(-1)
-
-        if args.use_mean:
-            de_top_k_list = [np.mean(de_top_k_list)]
-
-        de_list_epoch = []
-        for de_ in de_top_k_list:
-            print("DE topk = ", de_)
-            print("section id = ", args.input_data)
-            ari_doc_ini = []
-            ari_doc_final = []
-
-            for i in range(args.impute_runs):
-                for cluster_n in args.impute_cluster_num:
-                    print("cluster_n = ", cluster_n)
-                    GAAE.get_kNN(adata, rad_cutoff=args.radius)
-
-                    ari_ini, ari_final, de_list, adata_out = GAAE.train_STA_use_DE(adata, n_epochs=1000,
-                                                                                      num_cluster=int(cluster_n),
-                                                                                      dif_k=de_, device_id=args.use_gpu_id)
-                    ari_doc_ini.append(ari_ini)
-                    ari_doc_final.append(ari_final)
-                    de_list_epoch.append(de_list)
-                    adata_list.append(adata_out)
-                    if args.save_fig:
-                        if args.input_data == 'starmap':
-                            timestr = time.strftime("%Y%m%d-%H%M%S")
-                            plt.rcParams["figure.figsize"] = (3, 3)
-                            sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
-                                          title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], spot_size=95)
-                            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                            downstream_analyses(args.input_data, adata, ari_ini, root_d,
-                                                args.input_data + "_" + timestr)
-                        if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
-                            timestr = time.strftime("%Y%m%d-%H%M%S")
-                            plt.rcParams["figure.figsize"] = (3, 3)
-                            sc.pl.spatial(adata_out, color=["mclust", "Ground Truth"],
-                                          title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], img_key=None)
-                            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                            downstream_analyses(args.input_data, adata, ari_ini, root_d,
-                                                args.input_data + "_" + timestr)
-
-            print(ari_doc_ini)
-            print(np.mean(ari_doc_ini))
-            print(np.std(ari_doc_ini))
-
-            print(ari_doc_final)
-            print(np.mean(ari_doc_final))
-            print(np.std(ari_doc_final))
         g_union = set.union(*de_list_epoch)
-        imputed_ad = impute(args, adata_list, g_union)
+        imputed_ad = impute(args, adata_list, g_union, de_top_k_list)
+    else:
+        print("skip performing DEGs selection")
+        imputed_ad = adata
 
-        """result of imputed data"""
-        GAAE.Cal_Spatial_Net(imputed_ad, rad_cutoff=args.radius)
-        ari_doc_ini = []
-        ari_doc_final = []
-        for i in range(args.runs):
-            ari_ini, ari_final, de_list, adata_out = GAAE.train_STA_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
-            ari_doc_ini.append(ari_ini)
-            ari_doc_final.append(ari_final)
-            if args.save_fig:
-                if args.input_data == 'starmap':
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust", "Ground Truth"], title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], spot_size=95)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
-                if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust", "Ground Truth"], title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], spot_size=55)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
-                if args.input_data == 'BC1':
-                    timestr = time.strftime("%Y%m%d-%H%M%S")
-                    plt.rcParams["figure.figsize"] = (3, 3)
-                    sc.pl.spatial(adata, color=["mclust", "Ground Truth"], title=['Our method (ARI=%.2f)' % ari_final, "Ground Truth"], spot_size=150)
-                    plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
-                    downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
-        print(ari_doc_ini)
-        print(np.mean(ari_doc_ini))
-        print(np.std(ari_doc_ini))
+    """result of imputed data"""
+    GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
+    ari_ini, ARI, de_list, adata_out = GAAE.train_ADEPT_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
 
-        print(ari_doc_final)
-        print(np.mean(ari_doc_final))
-        print(np.std(ari_doc_final))
+    print('Dataset:', dataset)
+    print('ARI:', ARI)
+    aris.append(ARI)
+    print(aris)
+
+    if args.save_fig:
+        if args.input_data in ['20180417_BZ5_control', '20180419_BZ9_control', '20180424_BZ14_control', 'STARmap_20180505_BY3_1k.h5ad']:
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            plt.rcParams["figure.figsize"] = (3, 3)
+            sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
+                            title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=95)
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
+        if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            plt.rcParams["figure.figsize"] = (3, 3)
+            sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
+                            title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=55)
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
+        if args.input_data == 'section1':
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            plt.rcParams["figure.figsize"] = (3, 3)
+            sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
+                            title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150, color_map='viridis')
+            print(adata_out.uns)
+            print(adata_out.uns['mclust_impute_colors'])
+            adata_out.uns['mclust_impute_colors'] = ['#440154', '#481467', '#482576', '#453781', '#404688',
+                                                    '#39558c', '#33638d', '#2d718e', '#287d8e', '#238a8d',
+                                                    '#1f968b', '#20a386', '#29af7f', '#3dbc74', '#56c667',
+                                                    '#75d054', '#95d840', '#bade28', '#dde318', '#fde725']
+            print(adata_out.uns['mclust_impute_colors'])
+            sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
+                            title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150, color_map='viridis')
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
