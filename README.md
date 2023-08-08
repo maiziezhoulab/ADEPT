@@ -200,3 +200,6 @@ Citation
 --------
 Y. Hu, Y. Zhao, C. T. Schunk, Y. Ma, T. Derr, X. M. Zhou. ADEPT: autoencoder with differentially expressed genes and imputation for robust spatial transcriptomics clustering. iScience  (2023) 26(6), 106792. (also accepted and presented at RECOMB-Seq, Istanbul, Turkey, April 14-15, 2023)
 
+Acknowledgement
+--------
+Great thanks to Zhenhan for helping finalizing the Readme!!!
