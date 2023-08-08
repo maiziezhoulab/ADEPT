@@ -2,7 +2,7 @@
 
 ## News
 
-Our paper is published in iScince!
+Our paper is published in iScience!
 
 ## Introduction 
 
