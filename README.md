@@ -193,9 +193,7 @@ For using ADEPT on DLPFC data, run
 
 (4) The input root dir for data and grount truth could be separated, so we have to specify paths for both.
 
-(5) 
-
-(6) The DLPFC data will be provided with our next benchmarking project, but you may find it through other sources.
+(5) The DLPFC data will be provided with our next benchmarking project, but you may find it through other sources.
 
 
 Citation
