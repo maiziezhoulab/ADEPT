@@ -2,7 +2,7 @@
 
 ## News
 
-Our paper has just been accepted by Recomb-seq 2023!
+Our paper is published in iScience!
 
 ## Introduction 
 
@@ -15,6 +15,11 @@ The general workflow of ADEPT works as follows:
 		<em></em>
 	</p>
 </p>
+
+
+## Documentation
+
+Please refer to this [link](https://adept-tutorial.readthedocs.io/en/latest/index.html) for better exploration of our tool.
 
 
 ## Installation
