@@ -38,12 +38,60 @@ scipy
 
 matplolib
 
-### Install from github
+### Installation from github
 1. git clone --recursive https://github.com/maiziezhoulab/AquilaDeepFilter.git
 2. conda create -n [EnvName] python=3.7
 3. source activate [EnvName]
 4. install pytorch (https://pytorch.org/get-started/locally/) + pytorch-geometric (https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html) before everything
 5. pip install -r requirements.txt
+6. pip install scanpy python-igraph rpy2
+7. install.packages("mclust") with R
+
+### Installation for Colab user
+
+Colab user can link to google drive and enter the folder through code below：
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Modify it to the name you saved for the fold with
+folder_name = 'ADEPT/'
+import sys
+sys.path.append('/content/drive/My Drive/{}'.format(folder_name))
+
+%cd /content/drive/My\ Drive/$folder_name
+```
+
+In colab environment (with complete base env), you need to install libraries below:
+
+```python
+!pip install torch-geometric
+!pip install -r requirements.txt
+!pip install scanpy
+!pip install python-igraph
+!pip install rpy2
+
+import torch
+!pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-{torch.__version__}.html
+
+import rpy2.robjects as robjects
+
+install_cmd = "install.packages('mclust', repos='http://cran.r-project.org')"
+robjects.r(install_cmd)
+```
+
+For possible error, please try:
+
+```
+"""
+    OSError: cannot load library 'C:\Program Files\R\R-4.3.1\bin\x64\R.dll':error 0x780
+"""
+import os
+os.environ['R_HOME'] = 'C:\\Program Files\\R\\R-4.3.1\\' # replace it with your own path
+```
+
+
 
 ## Usage
 
@@ -66,7 +114,7 @@ Run ADEPT
 
 The main function of ADEPT is implemented in ***ADEPT_main.py***. When using ADEPT, we do not need to specify any data types. 
 
-The meaning of each argument in ***run_CCST.py*** is listed below.
+The meaning of each argument in ***ADEPT_main.py*** is listed below.
 
     parser.add_argument('--impute_cluster_num', type=str, default="7", help="diff cluster numbers for imputation")
     parser.add_argument('--cluster_num', type=int, default=7, help="input data cluster number")
@@ -133,11 +181,11 @@ The meaning of each argument in ***run_CCST.py*** is listed below.
  
 For using ADEPT on DLPFC data, run
 
- `python ADEPT_main.py --input_data=151673 --cluster_num=7 --radius=150 --use_hvgs=0 --runs=3 --de_candidates=None --impute_runs=5` 
+ `python ADEPT_main.py --input_data=151673 --cluster_num=7 --radius=150 --use_hvgs=0 --runs=3 --de_candidates=150,200,250,300,350,400 --impute_runs=1` 
  
  and on STARmap data, run
  
- `python ADEPT_main.py --input_data=starmap --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=None --filter_nzr=0 --impute_runs=10 --save_fig=1`
+ `python ADEPT_main.py --data_dir="./dataset/STARmap" --input_data=STARmap_20180505_BY3_1k.h5ad --cluster_num=7 --radius=400 --use_hvgs=0 --runs=3 --de_candidates=50,75 --filter_nzr=0 --impute_runs=3 --save_fig=1`
  
 
 ### notice
@@ -150,14 +198,13 @@ For using ADEPT on DLPFC data, run
 
 (4) The input root dir for data and grount truth could be separated, so we have to specify paths for both.
 
-<!-- All results are saved in the results folder. We provide our results in the folder ***results*** for taking further analysis. 
-
-(1) The cell clustering labels are saved in ***types.txt***, where the first column refers to cell index, and the last column refers to cell cluster label. 
-
-(3) The spatial distribution of cells within each batch are illustrated in ***.png*** files.  -->
+(5) The DLPFC data will be provided with our next benchmarking project, but you may find it through other sources.
 
 
 Citation
 --------
-Y. Hu†, Y. Zhao†, C. T. Schunk, Y. Ma, T. Derr*, X. M. Zhou*. ADEPT: autoencoder with differentially expressed genes and imputation for a robust spatial transcriptomics clustering. (Recomb-seq 2023)
+Y. Hu, Y. Zhao, C. T. Schunk, Y. Ma, T. Derr, X. M. Zhou. ADEPT: autoencoder with differentially expressed genes and imputation for robust spatial transcriptomics clustering. iScience  (2023) 26(6), 106792. (also accepted and presented at RECOMB-Seq, Istanbul, Turkey, April 14-15, 2023)
 
+Acknowledgement
+--------
+Great thanks to Zhenhan for helping finalizing the Readme!!!
