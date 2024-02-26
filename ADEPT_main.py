@@ -53,7 +53,7 @@ if __name__ == '__main__':
     adata, adata_ori = initialize(args, filter_num)
 
     if args.de_candidates == "None":
-        if os.path.exists('./cache/' + args.data_dir.split('/')[-2] + dataset + '.txt'):
+        if os.path.exists('./cache/' + args.data_dir.split('/')[-2] + args.input_data + '.txt'):
             with open('./cache/' + args.data_dir.split('/')[-2] + '.txt', 'r') as fp:
                 line = fp.readlines()[0]
                 split_ = line.strip().split(",")
@@ -99,7 +99,8 @@ if __name__ == '__main__':
     GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
     ari_ini, ARI, de_list, adata_out = GAAE.train_ADEPT_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
 
-    print('Dataset:', dataset)
+    aris = []
+    print('Dataset:', args.input_data)
     print('ARI:', ARI)
     aris.append(ARI)
     print(aris)
