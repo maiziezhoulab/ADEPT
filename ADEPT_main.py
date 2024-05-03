@@ -1,6 +1,3 @@
-"""
-main function is currently ongoing debugging
-"""
 import warnings
 import pandas as pd
 import numpy as np
@@ -24,6 +21,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str, default="./", help="root dir for input data")
     parser.add_argument('--gt_dir', type=str, default="./", help="root dir for data ground truth")
     parser.add_argument('--input_data', type=str, default="151673", help="input data section id")
+    parser.add_argument('--platform', type=str, default="visium", help="platform identifier")
+    parser.add_argument('--dataset', type=str, default="dlpfc", help="dataset name")
     parser.add_argument('--impute_cluster_num', type=str, default="7", help="diff cluster numbers for imputation")
     parser.add_argument('--cluster_num', type=int, default=7, help="input data cluster number")
     parser.add_argument('--radius', type=int, default=150, help="input data radius")
@@ -44,8 +43,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.impute_cluster_num = args.impute_cluster_num.split(",")  # ["5", "6", "7"]
     root_d = args.data_dir
+    aris = []
 
-    if args.input_data not in ['20180417_BZ5_control', '20180419_BZ9_control', '20180424_BZ14_control', 'STARmap_20180505_BY3_1k.h5ad']:
+    if args.platform.lower() != 'starmap':
         filter_num = filter_num_calc(args, args.filter_num)
         print("optimized filter number = ", filter_num)
     else:
@@ -99,7 +99,6 @@ if __name__ == '__main__':
     GAAE.get_kNN(imputed_ad, rad_cutoff=args.radius)
     ari_ini, ARI, de_list, adata_out = GAAE.train_ADEPT_use_DE(imputed_ad, n_epochs=1000, num_cluster=args.cluster_num, device_id=args.use_gpu_id)
 
-    aris = []
     print('Dataset:', args.input_data)
     print('ARI:', ARI)
     aris.append(ARI)
@@ -111,14 +110,14 @@ if __name__ == '__main__':
             plt.rcParams["figure.figsize"] = (3, 3)
             sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
                             title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=95)
-            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + ".pdf"))
             downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
         if args.input_data in ['151507', '151508', '151509', '151510', '151673', '151674', '151675', '151676']:
             timestr = time.strftime("%Y%m%d-%H%M%S")
             plt.rcParams["figure.figsize"] = (3, 3)
             sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
                             title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=55)
-            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + ".pdf"))
             downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
         if args.input_data == 'section1':
             timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -134,5 +133,5 @@ if __name__ == '__main__':
             print(adata_out.uns['mclust_impute_colors'])
             sc.pl.spatial(adata_out, color=["mclust_impute", "Ground Truth"],
                             title=['ADEPT (ARI=%.2f)' % ari_ini, "Ground Truth"], spot_size=150, color_map='viridis')
-            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + "_" + str(i) + ".pdf"))
+            plt.savefig(os.path.join(root_d, args.input_data + '_viz', "_" + timestr + ".pdf"))
             downstream_analyses(args.input_data, adata_out, ari_ini, root_d, args.input_data + "_" + timestr, imputed_=1)
